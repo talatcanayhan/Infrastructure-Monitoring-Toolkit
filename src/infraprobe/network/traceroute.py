@@ -15,14 +15,11 @@ References:
 import logging
 import os
 import socket
-import struct
 import time
 from dataclasses import dataclass, field
 from typing import Optional
 
 from infraprobe.network.icmp import (
-    ICMP_HEADER_FORMAT,
-    ICMP_HEADER_SIZE,
     IP_HEADER_SIZE,
     build_icmp_packet,
 )
@@ -158,7 +155,10 @@ def traceroute(
 
     logger.info(
         "Traceroute to %s (%s), %d hops max, %d probes per hop",
-        target, target_ip, max_hops, probes_per_hop,
+        target,
+        target_ip,
+        max_hops,
+        probes_per_hop,
     )
 
     for ttl in range(1, max_hops + 1):
@@ -192,7 +192,10 @@ def traceroute(
             )
             logger.debug(
                 "Hop %2d: %s (%s) avg=%.2fms",
-                ttl, hop.hostname, hop.ip, avg_rtt,
+                ttl,
+                hop.hostname,
+                hop.ip,
+                avg_rtt,
             )
         else:
             logger.debug("Hop %2d: * * *", ttl)

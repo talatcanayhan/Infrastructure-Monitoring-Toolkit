@@ -11,7 +11,7 @@ import ssl
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 import requests
@@ -100,9 +100,7 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
 
                 # Calculate days until expiry
                 if info.not_after:
-                    not_after_dt = datetime.strptime(
-                        info.not_after, "%b %d %H:%M:%S %Y %Z"
-                    )
+                    not_after_dt = datetime.strptime(info.not_after, "%b %d %H:%M:%S %Y %Z")
                     now = datetime.now(timezone.utc).replace(tzinfo=None)
                     delta = not_after_dt - now
                     info.days_until_expiry = delta.days

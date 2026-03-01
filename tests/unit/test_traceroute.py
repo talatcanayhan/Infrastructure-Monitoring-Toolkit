@@ -16,6 +16,7 @@ class TestResolveHostname:
     @patch("infraprobe.network.traceroute.socket.gethostbyaddr")
     def test_failed_resolve(self, mock_resolve: MagicMock) -> None:
         import socket
+
         mock_resolve.side_effect = socket.herror("not found")
         assert _resolve_hostname("1.2.3.4") == "1.2.3.4"
 
@@ -26,6 +27,7 @@ class TestTraceroute:
     @patch("infraprobe.network.traceroute.socket.gethostbyname")
     def test_dns_failure(self, mock_resolve: MagicMock) -> None:
         import socket
+
         mock_resolve.side_effect = socket.gaierror("not found")
         hops = traceroute("nonexistent.invalid")
         assert hops == []

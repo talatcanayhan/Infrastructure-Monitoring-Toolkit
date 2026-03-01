@@ -5,7 +5,6 @@ log analysis, and continuous monitoring with Prometheus metrics.
 """
 
 import logging
-from pathlib import Path
 from typing import Optional
 
 import typer
@@ -87,7 +86,9 @@ def ping(
 @app.command()
 def scan(
     target: str = typer.Argument(help="Hostname or IP address to scan"),
-    ports: str = typer.Option("1-1024", "--ports", "-p", help="Port range (e.g., '1-1024' or '22,80,443')"),
+    ports: str = typer.Option(
+        "1-1024", "--ports", "-p", help="Port range (e.g., '1-1024' or '22,80,443')"
+    ),
     timeout: float = typer.Option(3.0, "--timeout", "-t", help="Timeout per connection in seconds"),
     max_concurrent: int = typer.Option(100, "--concurrency", help="Max concurrent connections"),
     output: str = typer.Option("text", "--output", "-o", help="Output format: text or json"),
@@ -117,8 +118,12 @@ def scan(
 @app.command()
 def dns(
     domain: str = typer.Argument(help="Domain name to resolve"),
-    record_type: str = typer.Option("A", "--type", "-t", help="Record type: A, AAAA, CNAME, MX, NS, TXT, SOA"),
-    nameserver: Optional[str] = typer.Option(None, "--nameserver", "-n", help="Custom nameserver IP"),
+    record_type: str = typer.Option(
+        "A", "--type", "-t", help="Record type: A, AAAA, CNAME, MX, NS, TXT, SOA"
+    ),
+    nameserver: Optional[str] = typer.Option(
+        None, "--nameserver", "-n", help="Custom nameserver IP"
+    ),
     output: str = typer.Option("text", "--output", "-o", help="Output format: text or json"),
 ) -> None:
     """Resolve DNS records using raw UDP queries (RFC 1035)."""
@@ -141,7 +146,9 @@ def dns(
 def http(
     url: str = typer.Argument(help="URL to check"),
     check_tls: bool = typer.Option(True, "--check-tls/--no-tls", help="Validate TLS certificate"),
-    follow_redirects: bool = typer.Option(True, "--follow-redirects/--no-follow", help="Follow HTTP redirects"),
+    follow_redirects: bool = typer.Option(
+        True, "--follow-redirects/--no-follow", help="Follow HTTP redirects"
+    ),
     expected_status: int = typer.Option(200, "--expected-status", help="Expected HTTP status code"),
     timeout: float = typer.Option(10.0, "--timeout", "-t", help="Request timeout in seconds"),
     output: str = typer.Option("text", "--output", "-o", help="Output format: text or json"),
@@ -241,7 +248,9 @@ def system(
 def logs(
     path: str = typer.Argument(help="Path to log file to analyze"),
     pattern: Optional[str] = typer.Option(None, "--pattern", "-p", help="Regex pattern to filter"),
-    log_format: str = typer.Option("auto", "--format", "-f", help="Log format: auto, syslog, nginx, apache"),
+    log_format: str = typer.Option(
+        "auto", "--format", "-f", help="Log format: auto, syslog, nginx, apache"
+    ),
     tail: int = typer.Option(0, "--tail", "-n", help="Only analyze last N lines (0 = all)"),
     output: str = typer.Option("text", "--output", "-o", help="Output format: text or json"),
 ) -> None:
@@ -287,7 +296,9 @@ def monitor(
 def serve(
     port: int = typer.Option(9100, "--port", "-p", help="Port to listen on"),
     bind: str = typer.Option("0.0.0.0", "--bind", "-b", help="Address to bind to"),
-    config_file: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file for targets"),
+    config_file: Optional[str] = typer.Option(
+        None, "--config", "-c", help="Configuration file for targets"
+    ),
 ) -> None:
     """Start the Prometheus metrics HTTP server."""
     from infraprobe.metrics.prometheus_exporter import start_metrics_server
@@ -307,14 +318,18 @@ def serve(
 @app.command()
 def report(
     config_file: str = typer.Argument(help="Path to configuration YAML file"),
-    output_format: str = typer.Option("html", "--format", "-f", help="Report format: html, json, md"),
+    output_format: str = typer.Option(
+        "html", "--format", "-f", help="Report format: html, json, md"
+    ),
     output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
 ) -> None:
     """Generate a monitoring report from a one-time scan."""
     from infraprobe.output.report import generate_report
 
     config = load_config(config_file)
-    result_path = generate_report(config=config, output_format=output_format, output_file=output_file)
+    result_path = generate_report(
+        config=config, output_format=output_format, output_file=output_file
+    )
     console.print(f"[bold green]Report generated:[/] {result_path}")
 
 

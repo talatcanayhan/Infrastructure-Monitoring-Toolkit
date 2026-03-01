@@ -12,10 +12,10 @@ class TestGetDiskUsage:
     def test_calculates_usage(self, mock_statvfs: MagicMock) -> None:
         """Should correctly calculate disk usage from statvfs."""
         mock_stat = MagicMock()
-        mock_stat.f_frsize = 4096       # 4KB block size
-        mock_stat.f_blocks = 2621440    # ~10GB total
-        mock_stat.f_bfree = 1310720     # ~5GB free (root)
-        mock_stat.f_bavail = 1048576    # ~4GB free (non-root)
+        mock_stat.f_frsize = 4096  # 4KB block size
+        mock_stat.f_blocks = 2621440  # ~10GB total
+        mock_stat.f_bfree = 1310720  # ~5GB free (root)
+        mock_stat.f_bavail = 1048576  # ~4GB free (non-root)
         mock_stat.f_files = 655360
         mock_stat.f_ffree = 600000
         mock_statvfs.return_value = mock_stat

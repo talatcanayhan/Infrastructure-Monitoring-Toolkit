@@ -65,7 +65,6 @@ class MetricCollector:
             update_ping_metrics,
             update_http_metrics,
             update_dns_metrics,
-            update_system_metrics,
             collection_duration,
             port_open as port_open_gauge,
             checks_total,
@@ -81,11 +80,13 @@ class MetricCollector:
 
                 if check_type == "ping":
                     from infraprobe.network.icmp import ping
+
                     stats = ping(target=target.host, count=check.count, timeout=check.timeout)
                     update_ping_metrics(target.host, stats)
 
                 elif check_type == "http":
                     from infraprobe.network.http_checker import check_http
+
                     result = check_http(
                         url=check.url,
                         expected_status=check.expected_status,
@@ -96,6 +97,7 @@ class MetricCollector:
 
                 elif check_type == "tcp":
                     from infraprobe.network.tcp import scan_ports
+
                     results = scan_ports(
                         host=target.host,
                         ports=check.ports,
@@ -109,6 +111,7 @@ class MetricCollector:
 
                 elif check_type == "dns":
                     from infraprobe.network.dns_resolver import resolve
+
                     result = resolve(
                         domain=check.domain,
                         record_type=check.record_type,
@@ -126,7 +129,10 @@ class MetricCollector:
 
     def _system_loop(self) -> None:
         """Collect system metrics on an interval."""
-        from infraprobe.metrics.prometheus_exporter import update_system_metrics, collection_duration
+        from infraprobe.metrics.prometheus_exporter import (
+            update_system_metrics,
+            collection_duration,
+        )
 
         interval = self.config.system.interval
 
@@ -137,14 +143,17 @@ class MetricCollector:
 
                 if self.config.system.collect_cpu:
                     from infraprobe.system.cpu import get_cpu_metrics
+
                     metrics["cpu"] = get_cpu_metrics(sample_interval=0.5)
 
                 if self.config.system.collect_memory:
                     from infraprobe.system.memory import get_memory_metrics
+
                     metrics["memory"] = get_memory_metrics()
 
                 if self.config.system.collect_disk:
                     from infraprobe.system.disk import get_disk_metrics
+
                     metrics["disk"] = get_disk_metrics(paths=self.config.system.disk_paths)
 
                 update_system_metrics(metrics)

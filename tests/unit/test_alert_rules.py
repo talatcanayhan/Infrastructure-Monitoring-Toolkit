@@ -1,9 +1,5 @@
 """Tests for the alerting rule engine."""
 
-import time
-
-import pytest
-
 from infraprobe.alerting.rules import AlertEngine, _parse_duration
 
 
@@ -71,7 +67,7 @@ class TestAlertEngine:
     def test_resolves_and_refires(self) -> None:
         engine = self._make_engine("> 100", "0s")
         engine.evaluate("latency", 150.0)  # Fire
-        engine.evaluate("latency", 50.0)   # Resolve
+        engine.evaluate("latency", 50.0)  # Resolve
         alerts = engine.evaluate("latency", 200.0)  # Re-fire
         assert len(alerts) == 1
 

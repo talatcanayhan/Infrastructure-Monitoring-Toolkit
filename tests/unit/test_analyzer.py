@@ -1,8 +1,6 @@
 """Tests for the log analyzer module."""
 
-import pytest
-
-from infraprobe.logging_analysis.analyzer import AnalysisResult, analyze_entries
+from infraprobe.logging_analysis.analyzer import analyze_entries
 from infraprobe.logging_analysis.parser import LogEntry
 
 

@@ -11,7 +11,6 @@ from typing import Any, Optional
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
-
 # --- Check models ---
 
 

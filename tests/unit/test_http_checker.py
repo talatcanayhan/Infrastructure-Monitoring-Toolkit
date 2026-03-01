@@ -2,10 +2,9 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
 
-from infraprobe.network.http_checker import HTTPResult, check_http
+from infraprobe.network.http_checker import check_http
 
 
 class TestCheckHttp:

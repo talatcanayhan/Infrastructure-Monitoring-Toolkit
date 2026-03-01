@@ -17,7 +17,6 @@ References:
 import logging
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("infraprobe.system.process")
@@ -96,15 +95,15 @@ def _read_process_stat(pid: int) -> Optional[dict]:
     if paren_end == -1:
         return None
 
-    fields = content[paren_end + 2:].split()
+    fields = content[paren_end + 2 :].split()
     if len(fields) < 20:
         return None
 
     return {
         "state": fields[0],
         "ppid": int(fields[1]),
-        "utime": int(fields[11]),   # User CPU time in clock ticks
-        "stime": int(fields[12]),   # System CPU time in clock ticks
+        "utime": int(fields[11]),  # User CPU time in clock ticks
+        "stime": int(fields[12]),  # System CPU time in clock ticks
         "threads": int(fields[17]),
     }
 

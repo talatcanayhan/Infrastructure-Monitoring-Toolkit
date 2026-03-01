@@ -9,7 +9,6 @@ Also provides TCP connection-based bandwidth estimation.
 import logging
 import time
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("infraprobe.network.bandwidth")

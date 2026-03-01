@@ -11,7 +11,6 @@ References:
 
 import logging
 import os
-import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -159,7 +158,11 @@ def _read_diskstats() -> dict[str, DiskIOStats]:
                 name = parts[2]
                 # Skip partitions (only keep whole devices like sda, nvme0n1)
                 # Heuristic: skip if name ends with a digit after letters
-                if any(c.isdigit() for c in name) and name[-1].isdigit() and not name.startswith("nvme"):
+                if (
+                    any(c.isdigit() for c in name)
+                    and name[-1].isdigit()
+                    and not name.startswith("nvme")
+                ):
                     continue
 
                 stats[name] = DiskIOStats(

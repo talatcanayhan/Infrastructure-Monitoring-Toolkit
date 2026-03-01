@@ -1,12 +1,10 @@
 """Tests for the log parser module."""
 
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from infraprobe.logging_analysis.parser import (
-    LogEntry,
     _detect_level,
     _parse_nginx_access,
     _parse_syslog,
@@ -35,7 +33,7 @@ class TestParseSyslog:
     """Test syslog format parsing."""
 
     def test_standard_syslog(self) -> None:
-        line = 'Feb 22 14:30:01 myhost sshd[1234]: Accepted publickey for user'
+        line = "Feb 22 14:30:01 myhost sshd[1234]: Accepted publickey for user"
         entry = _parse_syslog(line)
         assert entry is not None
         assert entry.timestamp == "Feb 22 14:30:01"
@@ -43,7 +41,7 @@ class TestParseSyslog:
         assert "Accepted publickey" in entry.message
 
     def test_syslog_with_error(self) -> None:
-        line = 'Feb 22 14:30:01 myhost kernel: Out of memory: Kill process 1234'
+        line = "Feb 22 14:30:01 myhost kernel: Out of memory: Kill process 1234"
         entry = _parse_syslog(line)
         assert entry is not None
         assert entry.level == "ERROR"

@@ -118,8 +118,6 @@ def get_memory_metrics(proc_meminfo: str = PROC_MEMINFO) -> MemoryMetrics:
     metrics.swap_used_mb = round(metrics.swap_total_mb - metrics.swap_free_mb, 1)
 
     if metrics.swap_total_mb > 0:
-        metrics.swap_used_percent = round(
-            (metrics.swap_used_mb / metrics.swap_total_mb) * 100, 1
-        )
+        metrics.swap_used_percent = round((metrics.swap_used_mb / metrics.swap_total_mb) * 100, 1)
 
     return metrics

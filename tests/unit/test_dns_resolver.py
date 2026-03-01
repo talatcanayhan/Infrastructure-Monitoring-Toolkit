@@ -51,12 +51,12 @@ class TestBuildDnsQuery:
 
         # Parse header (12 bytes)
         header = struct.unpack("!HHHHHH", packet[:12])
-        assert header[0] == txn_id       # Transaction ID
+        assert header[0] == txn_id  # Transaction ID
         assert header[1] == DNS_FLAG_RD  # Flags (RD=1)
-        assert header[2] == 1            # QDCOUNT = 1
-        assert header[3] == 0            # ANCOUNT = 0
-        assert header[4] == 0            # NSCOUNT = 0
-        assert header[5] == 0            # ARCOUNT = 0
+        assert header[2] == 1  # QDCOUNT = 1
+        assert header[3] == 0  # ANCOUNT = 0
+        assert header[4] == 0  # NSCOUNT = 0
+        assert header[5] == 0  # ARCOUNT = 0
 
     def test_question_section(self) -> None:
         """Question section should contain encoded name + QTYPE + QCLASS."""
@@ -134,6 +134,7 @@ class TestResolve:
     def test_timeout(self, mock_socket_cls: MagicMock) -> None:
         """Should handle socket timeout gracefully."""
         import socket
+
         mock_sock = MagicMock()
         mock_sock.recvfrom.side_effect = socket.timeout("timed out")
         mock_socket_cls.return_value = mock_sock

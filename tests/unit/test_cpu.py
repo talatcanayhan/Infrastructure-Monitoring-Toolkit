@@ -1,7 +1,6 @@
 """Tests for the CPU metrics module."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 from infraprobe.system.cpu import CPUTimes, _calculate_percentages, _read_cpu_times
 
@@ -10,11 +9,15 @@ class TestCPUTimes:
     """Test CPUTimes dataclass calculations."""
 
     def test_total(self) -> None:
-        times = CPUTimes(user=100, nice=10, system=50, idle=800, iowait=20, irq=5, softirq=5, steal=10)
+        times = CPUTimes(
+            user=100, nice=10, system=50, idle=800, iowait=20, irq=5, softirq=5, steal=10
+        )
         assert times.total == 1000
 
     def test_busy(self) -> None:
-        times = CPUTimes(user=100, nice=10, system=50, idle=800, iowait=20, irq=5, softirq=5, steal=10)
+        times = CPUTimes(
+            user=100, nice=10, system=50, idle=800, iowait=20, irq=5, softirq=5, steal=10
+        )
         assert times.busy == 1000 - 800 - 20  # total - idle - iowait
 
 

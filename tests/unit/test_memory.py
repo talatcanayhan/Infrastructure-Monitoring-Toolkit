@@ -1,6 +1,5 @@
 """Tests for the memory metrics module."""
 
-import tempfile
 from pathlib import Path
 
 from infraprobe.system.memory import get_memory_metrics

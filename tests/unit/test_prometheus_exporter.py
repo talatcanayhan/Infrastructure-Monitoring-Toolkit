@@ -4,8 +4,6 @@ from unittest.mock import MagicMock
 
 from infraprobe.metrics.prometheus_exporter import (
     update_ping_metrics,
-    update_http_metrics,
-    update_dns_metrics,
     update_system_metrics,
 )
 

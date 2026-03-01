@@ -14,7 +14,6 @@ References:
 import logging
 import signal
 import threading
-import time
 from typing import Any, Optional
 
 from prometheus_client import (
@@ -22,8 +21,6 @@ from prometheus_client import (
     Gauge,
     Histogram,
     start_http_server,
-    CollectorRegistry,
-    REGISTRY,
 )
 
 logger = logging.getLogger("infraprobe.metrics.prometheus")
@@ -160,18 +157,15 @@ def update_ping_metrics(target: str, stats: Any) -> None:
 def update_http_metrics(url: str, result: Any) -> None:
     """Update Prometheus metrics from HTTP check results."""
     if result.response_time_ms > 0:
-        http_response_time.labels(url=url, method="GET").observe(
-            result.response_time_ms / 1000
-        )
+        http_response_time.labels(url=url, method="GET").observe(result.response_time_ms / 1000)
     http_status_code.labels(url=url).set(result.status_code)
     http_success.labels(url=url).set(1 if result.success else 0)
 
     if result.tls_info and result.tls_info.days_until_expiry:
         from urllib.parse import urlparse
+
         hostname = urlparse(url).hostname or url
-        tls_days_until_expiry.labels(hostname=hostname).set(
-            result.tls_info.days_until_expiry
-        )
+        tls_days_until_expiry.labels(hostname=hostname).set(result.tls_info.days_until_expiry)
 
     checks_total.labels(check_type="http", target=url).inc()
     if not result.success:
@@ -239,6 +233,7 @@ def start_metrics_server(
     # If config provided, start the collector loop
     if config:
         from infraprobe.metrics.collector import run_collector
+
         run_collector(config=config, live=False)
     else:
         # Just serve metrics, block forever

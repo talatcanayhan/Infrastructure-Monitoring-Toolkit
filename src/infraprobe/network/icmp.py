@@ -120,8 +120,8 @@ def build_icmp_packet(identifier: int, sequence: int, payload_size: int = 56) ->
     header = struct.pack(
         ICMP_HEADER_FORMAT,
         ICMP_ECHO_REQUEST,  # Type 8 = Echo Request
-        0,                  # Code 0
-        0,                  # Checksum placeholder
+        0,  # Code 0
+        0,  # Checksum placeholder
         identifier,
         sequence,
     )

@@ -4,7 +4,6 @@ Sends alerts via webhook (Slack/Teams/Discord compatible),
 SMTP email, and local log file.
 """
 
-import json
 import logging
 import smtplib
 from email.mime.text import MIMEText

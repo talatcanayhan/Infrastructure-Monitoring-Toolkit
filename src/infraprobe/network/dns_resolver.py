@@ -114,8 +114,10 @@ def build_dns_query(domain: str, record_type: str = "A") -> tuple[bytes, int]:
         "!HHHHHH",
         transaction_id,
         DNS_FLAG_RD,  # Standard query with recursion desired
-        1,            # One question
-        0, 0, 0,      # No answer, authority, or additional records
+        1,  # One question
+        0,
+        0,
+        0,  # No answer, authority, or additional records
     )
 
     # Build question section: QNAME + QTYPE + QCLASS
@@ -225,9 +227,7 @@ def _parse_rdata(data: bytes, offset: int, rdlength: int, rtype: int) -> str:
         mname, pos = _decode_name(data, offset)
         rname, pos = _decode_name(data, pos)
         if pos + 20 <= len(data):
-            serial, refresh, retry, expire, minimum = struct.unpack(
-                "!IIIII", data[pos : pos + 20]
-            )
+            serial, refresh, retry, expire, minimum = struct.unpack("!IIIII", data[pos : pos + 20])
             return f"{mname} {rname} {serial} {refresh} {retry} {expire} {minimum}"
         return f"{mname} {rname}"
 
@@ -378,7 +378,9 @@ def _system_resolve_fallback(domain: str, record_type: str) -> list[DNSRecord]:
         List of DNSRecord objects.
     """
     records: list[DNSRecord] = []
-    family = socket.AF_INET if record_type == "A" else socket.AF_INET6 if record_type == "AAAA" else None
+    family = (
+        socket.AF_INET if record_type == "A" else socket.AF_INET6 if record_type == "AAAA" else None
+    )
 
     if family is None:
         return records

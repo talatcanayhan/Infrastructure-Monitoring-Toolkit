@@ -15,7 +15,6 @@ References:
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger("infraprobe.system.cpu")
 
@@ -43,8 +42,14 @@ class CPUTimes:
     def total(self) -> int:
         """Total CPU time across all states."""
         return (
-            self.user + self.nice + self.system + self.idle
-            + self.iowait + self.irq + self.softirq + self.steal
+            self.user
+            + self.nice
+            + self.system
+            + self.idle
+            + self.iowait
+            + self.irq
+            + self.softirq
+            + self.steal
         )
 
     @property
@@ -151,8 +156,14 @@ def _calculate_percentages(before: CPUTimes, after: CPUTimes) -> dict[str, float
     total_delta = after.total - before.total
     if total_delta == 0:
         return {
-            "total": 0.0, "user": 0.0, "system": 0.0, "idle": 100.0,
-            "iowait": 0.0, "steal": 0.0, "irq": 0.0, "softirq": 0.0,
+            "total": 0.0,
+            "user": 0.0,
+            "system": 0.0,
+            "idle": 100.0,
+            "iowait": 0.0,
+            "steal": 0.0,
+            "irq": 0.0,
+            "softirq": 0.0,
         }
 
     def pct(before_val: int, after_val: int) -> float:

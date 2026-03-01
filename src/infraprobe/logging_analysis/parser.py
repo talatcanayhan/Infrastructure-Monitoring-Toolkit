@@ -42,11 +42,11 @@ SYSLOG_PATTERN = re.compile(
 
 # Nginx/Apache combined: '10.0.0.1 - - [22/Feb/2026:14:30:01 +0000] "GET / HTTP/1.1" 200 612'
 NGINX_PATTERN = re.compile(
-    r'^(?P<remote_addr>\S+)\s+\S+\s+\S+\s+'
-    r'\[(?P<timestamp>[^\]]+)\]\s+'
+    r"^(?P<remote_addr>\S+)\s+\S+\s+\S+\s+"
+    r"\[(?P<timestamp>[^\]]+)\]\s+"
     r'"(?P<request>[^"]+)"\s+'
-    r'(?P<status>\d{3})\s+'
-    r'(?P<body_bytes>\d+)'
+    r"(?P<status>\d{3})\s+"
+    r"(?P<body_bytes>\d+)"
 )
 
 # Nginx error log: "2026/02/22 14:30:01 [error] 1234#0: *5678 message"

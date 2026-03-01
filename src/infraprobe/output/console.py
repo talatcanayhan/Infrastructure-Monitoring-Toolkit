@@ -8,7 +8,6 @@ from typing import Any
 
 from rich.console import Console
 from rich.table import Table
-from rich.panel import Panel
 from rich.text import Text
 
 console = Console()
@@ -23,13 +22,13 @@ def _status_color(success: bool) -> str:
 
 def print_ping_results(stats: Any) -> None:
     """Print ping session results with color-coded RTT values."""
-    console.print(
-        f"\n[bold]PING[/bold] {stats.target} ({stats.resolved_ip})"
-    )
+    console.print(f"\n[bold]PING[/bold] {stats.target} ({stats.resolved_ip})")
 
     for r in stats.results:
         if r.success:
-            color = "green" if (r.rtt_ms or 0) < 50 else "yellow" if (r.rtt_ms or 0) < 100 else "red"
+            color = (
+                "green" if (r.rtt_ms or 0) < 50 else "yellow" if (r.rtt_ms or 0) < 100 else "red"
+            )
             console.print(
                 f"  Reply from {stats.resolved_ip}: "
                 f"bytes={r.packet_size} seq={r.sequence} ttl={r.ttl} "
@@ -39,7 +38,11 @@ def print_ping_results(stats: Any) -> None:
             console.print(f"  [red]Seq {r.sequence}: {r.error}[/red]")
 
     console.print(f"\n--- {stats.target} ping statistics ---")
-    loss_color = "green" if stats.packet_loss_percent == 0 else "yellow" if stats.packet_loss_percent < 50 else "red"
+    loss_color = (
+        "green"
+        if stats.packet_loss_percent == 0
+        else "yellow" if stats.packet_loss_percent < 50 else "red"
+    )
     console.print(
         f"{stats.packets_sent} packets transmitted, {stats.packets_received} received, "
         f"[{loss_color}]{stats.packet_loss_percent}% packet loss[/{loss_color}]"
@@ -89,7 +92,9 @@ def print_scan_results(target: str, results: Any) -> None:
     console.print()
     console.print(table)
     closed_count = len(results) - open_count
-    console.print(f"\n{open_count} open, {closed_count} closed/filtered out of {len(results)} scanned")
+    console.print(
+        f"\n{open_count} open, {closed_count} closed/filtered out of {len(results)} scanned"
+    )
     console.print()
 
 
@@ -128,20 +133,25 @@ def print_http_results(results: Any) -> None:
     status_color = "green" if results.success else "red"
     console.print(f"\n[bold]HTTP Check:[/bold] {results.url}")
     console.print(
-        f"  Status: [{status_color}]{results.status_code}[/{status_color}] "
-        f"({results.reason})"
+        f"  Status: [{status_color}]{results.status_code}[/{status_color}] " f"({results.reason})"
     )
     console.print(f"  Response time: {results.response_time_ms:.1f}ms")
     console.print(f"  Content length: {results.content_length} bytes")
 
     if results.tls_info:
         tls = results.tls_info
-        expiry_color = "green" if tls.days_until_expiry > 30 else "yellow" if tls.days_until_expiry > 7 else "red"
-        console.print(f"\n  [bold]TLS Certificate:[/bold]")
+        expiry_color = (
+            "green"
+            if tls.days_until_expiry > 30
+            else "yellow" if tls.days_until_expiry > 7 else "red"
+        )
+        console.print("\n  [bold]TLS Certificate:[/bold]")
         console.print(f"    Subject: {tls.subject}")
         console.print(f"    Issuer: {tls.issuer}")
         console.print(f"    Valid: {tls.not_before} to {tls.not_after}")
-        console.print(f"    Expires in: [{expiry_color}]{tls.days_until_expiry} days[/{expiry_color}]")
+        console.print(
+            f"    Expires in: [{expiry_color}]{tls.days_until_expiry} days[/{expiry_color}]"
+        )
         console.print(f"    Protocol: {tls.protocol_version}")
         console.print(f"    SANs: {', '.join(tls.san[:5])}")
 
@@ -202,13 +212,18 @@ def print_system_metrics(metrics: dict[str, Any]) -> None:
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right")
 
-        usage_color = "green" if cpu.total_percent < 60 else "yellow" if cpu.total_percent < 85 else "red"
+        usage_color = (
+            "green" if cpu.total_percent < 60 else "yellow" if cpu.total_percent < 85 else "red"
+        )
         table.add_row("Total Usage", f"[{usage_color}]{cpu.total_percent:.1f}%[/{usage_color}]")
         table.add_row("User", f"{cpu.user_percent:.1f}%")
         table.add_row("System", f"{cpu.system_percent:.1f}%")
         table.add_row("Idle", f"{cpu.idle_percent:.1f}%")
         table.add_row("I/O Wait", f"{cpu.iowait_percent:.1f}%")
-        table.add_row("Load Average (1/5/15)", f"{cpu.load_avg_1:.2f} / {cpu.load_avg_5:.2f} / {cpu.load_avg_15:.2f}")
+        table.add_row(
+            "Load Average (1/5/15)",
+            f"{cpu.load_avg_1:.2f} / {cpu.load_avg_5:.2f} / {cpu.load_avg_15:.2f}",
+        )
         console.print(table)
         console.print()
 
@@ -218,9 +233,13 @@ def print_system_metrics(metrics: dict[str, Any]) -> None:
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right")
 
-        usage_color = "green" if mem.used_percent < 60 else "yellow" if mem.used_percent < 85 else "red"
+        usage_color = (
+            "green" if mem.used_percent < 60 else "yellow" if mem.used_percent < 85 else "red"
+        )
         table.add_row("Total", f"{mem.total_mb:.0f} MB")
-        table.add_row("Used", f"[{usage_color}]{mem.used_mb:.0f} MB ({mem.used_percent:.1f}%)[/{usage_color}]")
+        table.add_row(
+            "Used", f"[{usage_color}]{mem.used_mb:.0f} MB ({mem.used_percent:.1f}%)[/{usage_color}]"
+        )
         table.add_row("Available", f"{mem.available_mb:.0f} MB")
         table.add_row("Buffers/Cached", f"{mem.buffers_mb:.0f} / {mem.cached_mb:.0f} MB")
         table.add_row("Swap Used", f"{mem.swap_used_mb:.0f} / {mem.swap_total_mb:.0f} MB")
@@ -236,7 +255,9 @@ def print_system_metrics(metrics: dict[str, Any]) -> None:
         table.add_column("Use%", justify="right")
 
         for d in metrics["disk"]:
-            usage_color = "green" if d.used_percent < 60 else "yellow" if d.used_percent < 85 else "red"
+            usage_color = (
+                "green" if d.used_percent < 60 else "yellow" if d.used_percent < 85 else "red"
+            )
             table.add_row(
                 d.mountpoint,
                 f"{d.total_gb:.1f}G",
@@ -284,7 +305,7 @@ def print_system_metrics(metrics: dict[str, Any]) -> None:
 
 def print_log_analysis(results: Any) -> None:
     """Print log analysis results."""
-    console.print(f"\n[bold]Log Analysis[/bold]")
+    console.print("\n[bold]Log Analysis[/bold]")
     console.print(f"  Total entries: {results.total_entries}")
     console.print(f"  Time range: {results.time_range}")
 

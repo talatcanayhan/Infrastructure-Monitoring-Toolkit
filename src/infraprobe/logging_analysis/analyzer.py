@@ -70,9 +70,7 @@ def analyze_entries(
     result.warning_count = level_counts.get("WARNING", 0) + level_counts.get("WARN", 0)
 
     if result.total_entries > 0:
-        result.error_rate_percent = round(
-            (result.error_count / result.total_entries) * 100, 2
-        )
+        result.error_rate_percent = round((result.error_count / result.total_entries) * 100, 2)
 
     # Pattern matching
     if pattern:

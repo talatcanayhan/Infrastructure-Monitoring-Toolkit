@@ -29,10 +29,10 @@ class TextFormatter(logging.Formatter):
     """Human-readable log format for terminal output."""
 
     LEVEL_COLORS = {
-        "DEBUG": "\033[36m",     # Cyan
-        "INFO": "\033[32m",      # Green
-        "WARNING": "\033[33m",   # Yellow
-        "ERROR": "\033[31m",     # Red
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
+        "WARNING": "\033[33m",  # Yellow
+        "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[1;31m",  # Bold red
     }
     RESET = "\033[0m"

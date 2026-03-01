@@ -58,9 +58,7 @@ class TestBuildIcmpPacket:
         assert len(packet) == 64
 
         # Parse header
-        icmp_type, code, checksum, ident, seq = struct.unpack(
-            ICMP_HEADER_FORMAT, packet[:8]
-        )
+        icmp_type, code, checksum, ident, seq = struct.unpack(ICMP_HEADER_FORMAT, packet[:8])
         assert icmp_type == ICMP_ECHO_REQUEST
         assert code == 0
         assert checksum != 0  # Checksum should be computed
@@ -127,6 +125,7 @@ class TestSendPing:
     def test_dns_failure(self, mock_resolve: MagicMock) -> None:
         """Should handle DNS resolution failure."""
         import socket
+
         mock_resolve.side_effect = socket.gaierror("Name resolution failed")
         result = send_ping("nonexistent.invalid", sequence=1)
         assert result.success is False
@@ -143,8 +142,12 @@ class TestPing:
         from infraprobe.network.icmp import PingResult
 
         mock_send.side_effect = [
-            PingResult(sequence=1, target="1.2.3.4", rtt_ms=10.0, ttl=64, success=True, packet_size=64),
-            PingResult(sequence=2, target="1.2.3.4", rtt_ms=20.0, ttl=64, success=True, packet_size=64),
+            PingResult(
+                sequence=1, target="1.2.3.4", rtt_ms=10.0, ttl=64, success=True, packet_size=64
+            ),
+            PingResult(
+                sequence=2, target="1.2.3.4", rtt_ms=20.0, ttl=64, success=True, packet_size=64
+            ),
             PingResult(sequence=3, target="1.2.3.4", success=False, error="timeout"),
         ]
 

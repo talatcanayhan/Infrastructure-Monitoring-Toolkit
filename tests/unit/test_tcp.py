@@ -1,7 +1,5 @@
 """Tests for the TCP port scanner module."""
 
-import pytest
-
 from infraprobe.network.tcp import (
     WELL_KNOWN_SERVICES,
     parse_port_range,
