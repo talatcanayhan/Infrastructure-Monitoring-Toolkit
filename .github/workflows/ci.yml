@@ -120,7 +120,7 @@ jobs:
 
       - name: Install Trivy
         run: |
-          TRIVY_VERSION="0.58.2"
+          TRIVY_VERSION="0.69.2"
           wget -qO trivy.deb \
             "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.deb"
           sudo dpkg -i trivy.deb
@@ -169,7 +169,7 @@ jobs:
 
       - name: Install Trivy
         run: |
-          TRIVY_VERSION="0.58.2"
+          TRIVY_VERSION="0.69.2"
           wget -qO trivy.deb \
             "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.deb"
           sudo dpkg -i trivy.deb
