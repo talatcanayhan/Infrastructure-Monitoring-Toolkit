@@ -126,6 +126,8 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           format: table
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gitleaks — secret detection
         uses: gitleaks/gitleaks-action@v2
@@ -172,6 +174,8 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           format: table
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ---- 5. Integration test -----------------------------------------------
   integration-test:
