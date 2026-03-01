@@ -11,7 +11,7 @@ import ssl
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -74,35 +74,29 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
 
         with socket.create_connection((hostname, port), timeout=10) as sock:
             with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-                cert = ssock.getpeercert()
+                cert: Any = ssock.getpeercert()
                 if not cert:
                     return info
 
                 # Extract subject common name
                 subject_parts = []
-                subject = cert.get("subject")
-                if isinstance(subject, tuple):
-                    for rdn in subject:
-                        for attr_type, attr_value in rdn:
-                            if attr_type == "commonName":
-                                subject_parts.append(attr_value)
+                for rdn in cert.get("subject", ()):
+                    for attr_type, attr_value in rdn:
+                        if attr_type == "commonName":
+                            subject_parts.append(attr_value)
                 info.subject = ", ".join(subject_parts) if subject_parts else "Unknown"
 
                 # Extract issuer
                 issuer_parts = []
-                issuer = cert.get("issuer")
-                if isinstance(issuer, tuple):
-                    for rdn in issuer:
-                        for attr_type, attr_value in rdn:
-                            if attr_type in ("organizationName", "commonName"):
-                                issuer_parts.append(attr_value)
+                for rdn in cert.get("issuer", ()):
+                    for attr_type, attr_value in rdn:
+                        if attr_type in ("organizationName", "commonName"):
+                            issuer_parts.append(attr_value)
                 info.issuer = ", ".join(issuer_parts) if issuer_parts else "Unknown"
 
                 # Validity dates
-                not_before = cert.get("notBefore", "")
-                not_after = cert.get("notAfter", "")
-                info.not_before = not_before if isinstance(not_before, str) else ""
-                info.not_after = not_after if isinstance(not_after, str) else ""
+                info.not_before = cert.get("notBefore", "")
+                info.not_after = cert.get("notAfter", "")
 
                 # Calculate days until expiry
                 if info.not_after:
@@ -113,9 +107,8 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
                     info.is_expired = delta.days <= 0
 
                 # Subject Alternative Names
-                san_entries = cert.get("subjectAltName")
-                if isinstance(san_entries, tuple):
-                    info.san = [value for _, value in san_entries]
+                san_entries = cert.get("subjectAltName", ())
+                info.san = [value for _, value in san_entries]
 
                 # Connection details
                 info.protocol_version = ssock.version() or ""
@@ -123,8 +116,7 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
                 info.cipher = cipher_info[0] if cipher_info else ""
 
                 # Serial number
-                serial = cert.get("serialNumber", "")
-                info.serial_number = serial if isinstance(serial, str) else ""
+                info.serial_number = cert.get("serialNumber", "")
 
     except ssl.SSLCertVerificationError as e:
         logger.warning("TLS certificate verification failed for %s: %s", hostname, e)

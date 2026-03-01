@@ -17,7 +17,7 @@ References:
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger("infraprobe.system.process")
 
@@ -71,7 +71,7 @@ def _get_total_memory_kb() -> int:
     return 0
 
 
-def _read_process_stat(pid: int) -> Optional[dict[str, object]]:
+def _read_process_stat(pid: int) -> Optional[dict[str, Any]]:
     """Read /proc/[pid]/stat for CPU time and state.
 
     The stat file format is tricky because the process name (comm)
