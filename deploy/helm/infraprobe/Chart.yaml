@@ -1,0 +1,21 @@
+apiVersion: v2
+name: infraprobe
+description: >-
+  InfraProbe — Infrastructure monitoring toolkit that performs ICMP, HTTP, DNS,
+  and TCP checks while collecting system metrics and exposing them via Prometheus.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/talatcanayhan/infraprobe
+maintainers:
+  - name: Talat Can Ayhan
+keywords:
+  - monitoring
+  - infrastructure
+  - prometheus
+  - network
+  - icmp
+  - dns
+  - metrics
+sources:
+  - https://github.com/talatcanayhan/infraprobe

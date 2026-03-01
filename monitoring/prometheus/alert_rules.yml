@@ -1,0 +1,115 @@
+# Prometheus alerting rules for InfraProbe
+groups:
+  - name: infraprobe_network_alerts
+    rules:
+      - alert: TargetUnreachable
+        expr: infraprobe_ping_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.target }} is unreachable"
+          description: "ICMP ping to {{ $labels.target }} has been failing for more than 2 minutes."
+
+      - alert: HighPingLatency
+        expr: histogram_quantile(0.95, rate(infraprobe_ping_rtt_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High ping latency to {{ $labels.target }}"
+          description: "95th percentile ping RTT to {{ $labels.target }} is above 100ms."
+
+      - alert: HighPacketLoss
+        expr: infraprobe_ping_packet_loss_ratio > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Packet loss detected for {{ $labels.target }}"
+          description: "Packet loss to {{ $labels.target }} is {{ $value | humanizePercentage }}."
+
+      - alert: HTTPEndpointDown
+        expr: infraprobe_http_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP endpoint {{ $labels.url }} is down"
+          description: "HTTP health check for {{ $labels.url }} has been failing for 2 minutes."
+
+      - alert: SlowHTTPResponse
+        expr: histogram_quantile(0.95, rate(infraprobe_http_response_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow HTTP response from {{ $labels.url }}"
+          description: "95th percentile HTTP response time for {{ $labels.url }} is above 2 seconds."
+
+      - alert: TLSCertExpiringSoon
+        expr: infraprobe_tls_days_until_expiry < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS certificate for {{ $labels.hostname }} expiring soon"
+          description: "Certificate expires in {{ $value }} days."
+
+      - alert: TLSCertExpiryCritical
+        expr: infraprobe_tls_days_until_expiry < 7
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TLS certificate for {{ $labels.hostname }} expiring in {{ $value }} days"
+          description: "Certificate will expire within a week. Immediate renewal required."
+
+  - name: infraprobe_system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: infraprobe_cpu_usage_percent{mode="total"} > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage has been above 90% for 10 minutes."
+
+      - alert: HighMemoryUsage
+        expr: infraprobe_memory_usage_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is at {{ $value | humanizePercentage }}."
+
+      - alert: DiskSpaceLow
+        expr: infraprobe_disk_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space low on {{ $labels.mountpoint }}"
+          description: "Disk usage on {{ $labels.mountpoint }} is {{ $value }}%."
+
+      - alert: DiskSpaceCritical
+        expr: infraprobe_disk_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space critical on {{ $labels.mountpoint }}"
+          description: "Disk usage on {{ $labels.mountpoint }} is {{ $value }}%. Immediate action required."
+
+  - name: infraprobe_operational_alerts
+    rules:
+      - alert: HighCheckFailureRate
+        expr: rate(infraprobe_checks_failed_total[5m]) / rate(infraprobe_checks_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High check failure rate for {{ $labels.check_type }}"
+          description: "More than 50% of {{ $labels.check_type }} checks are failing."

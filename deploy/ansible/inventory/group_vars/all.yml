@@ -1,0 +1,43 @@
+# =============================================================================
+# InfraProbe - Global Variables (all hosts)
+# =============================================================================
+
+# Project identification
+project_name: infraprobe
+project_user: infraprobe
+project_group: infraprobe
+
+# Docker settings
+docker_edition: ce
+docker_compose_version: "v2.24.5"
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+
+# InfraProbe container image
+infraprobe_image: "ghcr.io/infraprobe/infraprobe"
+infraprobe_image_tag: "latest"
+
+# Network ports
+infraprobe_metrics_port: 9100
+prometheus_port: 9090
+grafana_port: 3000
+
+# Application paths
+infraprobe_base_dir: /opt/infraprobe
+infraprobe_config_dir: /opt/infraprobe/config
+infraprobe_data_dir: /opt/infraprobe/data
+infraprobe_log_dir: /var/log/infraprobe
+
+# System settings
+timezone: "UTC"
+ntp_servers:
+  - "0.pool.ntp.org"
+  - "1.pool.ntp.org"
+  - "2.pool.ntp.org"
+  - "3.pool.ntp.org"
+
+# SSH hardening
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_max_auth_retries: 3

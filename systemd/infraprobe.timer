@@ -1,0 +1,13 @@
+[Unit]
+Description=Run InfraProbe report generation periodically
+Documentation=https://github.com/talatcanayhan/infraprobe
+
+[Timer]
+# Run every hour
+OnCalendar=hourly
+# Randomize start within 5 minutes to avoid thundering herd
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,343 @@
+# =============================================================================
+# InfraProbe - Monitoring Stack Deployment Playbook
+# =============================================================================
+# Deploys the full monitoring stack (Prometheus + Grafana) alongside InfraProbe
+# using docker-compose. This playbook templates the docker-compose file,
+# Prometheus config, and Grafana provisioning, then brings up the stack.
+#
+# Usage:
+#   ansible-playbook playbooks/configure_monitoring.yml
+#   ansible-playbook playbooks/configure_monitoring.yml --check --diff
+#   ansible-playbook playbooks/configure_monitoring.yml -e "grafana_admin_password=SecureP@ss"
+# =============================================================================
+---
+- name: Deploy monitoring stack (Prometheus + Grafana)
+  hosts: monitoring_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    monitoring_dir: "{{ infraprobe_base_dir }}/monitoring"
+    prometheus_config_dir: "{{ monitoring_dir }}/prometheus"
+    grafana_provisioning_dir: "{{ monitoring_dir }}/grafana/provisioning"
+    grafana_dashboards_dir: "{{ monitoring_dir }}/grafana/dashboards"
+
+  pre_tasks:
+    - name: Display monitoring stack parameters
+      ansible.builtin.debug:
+        msg: |
+          Deploying monitoring stack to {{ ansible_hostname }}
+          Prometheus: {{ prometheus_image }} (port {{ prometheus_port }})
+          Grafana: {{ grafana_image }} (port {{ grafana_port }})
+          InfraProbe metrics: http://localhost:{{ infraprobe_metrics_port }}/metrics
+
+    - name: Verify Docker is installed and running
+      ansible.builtin.systemd:
+        name: docker
+      register: docker_status
+      failed_when: docker_status.status.ActiveState != "active"
+
+  tasks:
+    # -------------------------------------------------------------------------
+    # Create directory structure
+    # -------------------------------------------------------------------------
+
+    - name: Create monitoring directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ project_user }}"
+        group: "{{ project_group }}"
+        mode: "0750"
+      loop:
+        - "{{ monitoring_dir }}"
+        - "{{ prometheus_config_dir }}"
+        - "{{ grafana_provisioning_dir }}/datasources"
+        - "{{ grafana_provisioning_dir }}/dashboards"
+        - "{{ grafana_dashboards_dir }}"
+
+    # -------------------------------------------------------------------------
+    # Prometheus Configuration
+    # -------------------------------------------------------------------------
+
+    - name: Template Prometheus configuration
+      ansible.builtin.copy:
+        content: |
+          # Prometheus Configuration - Managed by Ansible
+          global:
+            scrape_interval: {{ prometheus_scrape_interval }}
+            evaluation_interval: {{ prometheus_scrape_interval }}
+            scrape_timeout: 10s
+
+          rule_files:
+            - "alert_rules.yml"
+
+          scrape_configs:
+            - job_name: "infraprobe"
+              static_configs:
+                - targets: ["localhost:{{ infraprobe_metrics_port }}"]
+                  labels:
+                    instance: "{{ ansible_hostname }}"
+                    environment: "{{ lookup('env', 'ENVIRONMENT') | default('production', true) }}"
+              scrape_interval: 15s
+              metrics_path: /metrics
+
+            - job_name: "prometheus"
+              static_configs:
+                - targets: ["localhost:{{ prometheus_port }}"]
+
+        dest: "{{ prometheus_config_dir }}/prometheus.yml"
+        owner: "{{ project_user }}"
+        group: "{{ project_group }}"
+        mode: "0644"
+      notify: restart monitoring stack
+
+    - name: Template Prometheus alert rules
+      ansible.builtin.copy:
+        content: |
+          # Prometheus Alert Rules - Managed by Ansible
+          groups:
+            - name: infraprobe_alerts
+              rules:
+                - alert: TargetDown
+                  expr: up{job="infraprobe"} == 0
+                  for: 2m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "InfraProbe target is down"
+                    description: "InfraProbe instance {% raw %}{{ $labels.instance }}{% endraw %} has been down for more than 2 minutes."
+
+                - alert: HighPingLatency
+                  expr: infraprobe_ping_rtt_seconds > 0.1
+                  for: 5m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "High ping latency detected"
+                    description: "Ping RTT to {% raw %}{{ $labels.target }}{% endraw %} is {% raw %}{{ $value }}{% endraw %}s (threshold: 100ms)."
+
+                - alert: TargetUnreachable
+                  expr: infraprobe_ping_success == 0
+                  for: 2m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Target unreachable"
+                    description: "Target {% raw %}{{ $labels.target }}{% endraw %} is not responding to ping."
+
+                - alert: HighCpuUsage
+                  expr: infraprobe_cpu_usage_percent > 90
+                  for: 10m
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "High CPU usage"
+                    description: "CPU usage on {% raw %}{{ $labels.instance }}{% endraw %} is {% raw %}{{ $value }}{% endraw %}%."
+
+                - alert: DiskSpaceLow
+                  expr: infraprobe_disk_usage_percent > 85
+                  for: 5m
+                  labels:
+                    severity: critical
+                  annotations:
+                    summary: "Disk space running low"
+                    description: "Disk usage on {% raw %}{{ $labels.instance }}{% endraw %} mount {% raw %}{{ $labels.mountpoint }}{% endraw %} is {% raw %}{{ $value }}{% endraw %}%."
+
+                - alert: TLSCertExpiringSoon
+                  expr: infraprobe_tls_days_until_expiry < 30
+                  for: 1h
+                  labels:
+                    severity: warning
+                  annotations:
+                    summary: "TLS certificate expiring soon"
+                    description: "TLS certificate for {% raw %}{{ $labels.target }}{% endraw %} expires in {% raw %}{{ $value }}{% endraw %} days."
+
+        dest: "{{ prometheus_config_dir }}/alert_rules.yml"
+        owner: "{{ project_user }}"
+        group: "{{ project_group }}"
+        mode: "0644"
+      notify: restart monitoring stack
+
+    # -------------------------------------------------------------------------
+    # Grafana Configuration
+    # -------------------------------------------------------------------------
+
+    - name: Template Grafana datasource provisioning
+      ansible.builtin.copy:
+        content: |
+          # Grafana Datasource Provisioning - Managed by Ansible
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              url: http://prometheus:{{ prometheus_port }}
+              isDefault: true
+              editable: false
+              jsonData:
+                timeInterval: "15s"
+                httpMethod: POST
+        dest: "{{ grafana_provisioning_dir }}/datasources/prometheus.yml"
+        owner: "{{ project_user }}"
+        group: "{{ project_group }}"
+        mode: "0644"
+      notify: restart monitoring stack
+
+    - name: Template Grafana dashboard provisioning
+      ansible.builtin.copy:
+        content: |
+          # Grafana Dashboard Provisioning - Managed by Ansible
+          apiVersion: 1
+          providers:
+            - name: "InfraProbe Dashboards"
+              orgId: 1
+              folder: "InfraProbe"
+              type: file
+              disableDeletion: false
+              editable: true
+              updateIntervalSeconds: 30
+              options:
+                path: /var/lib/grafana/dashboards
+                foldersFromFilesStructure: false
+        dest: "{{ grafana_provisioning_dir }}/dashboards/dashboards.yml"
+        owner: "{{ project_user }}"
+        group: "{{ project_group }}"
+        mode: "0644"
+      notify: restart monitoring stack
+
+    # -------------------------------------------------------------------------
+    # Docker Compose for Monitoring Stack
+    # -------------------------------------------------------------------------
+
+    - name: Template monitoring stack docker-compose file
+      ansible.builtin.copy:
+        content: |
+          # InfraProbe Monitoring Stack - Managed by Ansible
+          # Prometheus + Grafana alongside InfraProbe
+
+          services:
+            prometheus:
+              image: {{ prometheus_image }}
+              container_name: infraprobe-prometheus
+              restart: unless-stopped
+              ports:
+                - "{{ prometheus_port }}:9090"
+              volumes:
+                - {{ prometheus_config_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+                - {{ prometheus_config_dir }}/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+                - prometheus_data:/prometheus
+              command:
+                - "--config.file=/etc/prometheus/prometheus.yml"
+                - "--storage.tsdb.path=/prometheus"
+                - "--storage.tsdb.retention.time={{ prometheus_retention }}"
+                - "--web.enable-lifecycle"
+              networks:
+                - monitoring
+
+            grafana:
+              image: {{ grafana_image }}
+              container_name: infraprobe-grafana
+              restart: unless-stopped
+              ports:
+                - "{{ grafana_port }}:3000"
+              volumes:
+                - {{ grafana_provisioning_dir }}:/etc/grafana/provisioning:ro
+                - {{ grafana_dashboards_dir }}:/var/lib/grafana/dashboards:ro
+                - grafana_data:/var/lib/grafana
+              environment:
+                - GF_SECURITY_ADMIN_USER={{ grafana_admin_user }}
+                - GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+                - GF_USERS_ALLOW_SIGN_UP={{ grafana_allow_signup | lower }}
+                - GF_SERVER_ROOT_URL=http://localhost:{{ grafana_port }}
+                - GF_ANALYTICS_REPORTING_ENABLED=false
+              depends_on:
+                - prometheus
+              networks:
+                - monitoring
+
+          volumes:
+            prometheus_data:
+              driver: local
+            grafana_data:
+              driver: local
+
+          networks:
+            monitoring:
+              driver: bridge
+              name: infraprobe-monitoring
+        dest: "{{ monitoring_dir }}/docker-compose.yml"
+        owner: "{{ project_user }}"
+        group: "{{ project_group }}"
+        mode: "0644"
+      notify: restart monitoring stack
+
+    # -------------------------------------------------------------------------
+    # Start Monitoring Stack
+    # -------------------------------------------------------------------------
+
+    - name: Start monitoring stack with docker-compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ monitoring_dir }}"
+        state: present
+        pull: always
+      register: compose_output
+
+    - name: Display docker-compose status
+      ansible.builtin.debug:
+        msg: "Monitoring stack services are running"
+
+    # -------------------------------------------------------------------------
+    # Verify Services
+    # -------------------------------------------------------------------------
+
+    - name: Wait for Prometheus to become available
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ prometheus_port }}/-/healthy"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: prometheus_health
+      retries: 10
+      delay: 5
+      until: prometheus_health.status == 200
+
+    - name: Wait for Grafana to become available
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ grafana_port }}/api/health"
+        method: GET
+        status_code: 200
+        timeout: 10
+      register: grafana_health
+      retries: 10
+      delay: 5
+      until: grafana_health.status == 200
+
+  # ---------------------------------------------------------------------------
+  # Handlers
+  # ---------------------------------------------------------------------------
+
+  handlers:
+    - name: restart monitoring stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ monitoring_dir }}"
+        state: restarted
+
+  # ---------------------------------------------------------------------------
+  # Post Tasks
+  # ---------------------------------------------------------------------------
+
+  post_tasks:
+    - name: Display monitoring stack summary
+      ansible.builtin.debug:
+        msg: |
+          Monitoring stack deployed successfully on {{ ansible_hostname }}
+
+          Service URLs:
+            InfraProbe Metrics: http://{{ ansible_default_ipv4.address | default('localhost') }}:{{ infraprobe_metrics_port }}/metrics
+            Prometheus:         http://{{ ansible_default_ipv4.address | default('localhost') }}:{{ prometheus_port }}
+            Grafana:            http://{{ ansible_default_ipv4.address | default('localhost') }}:{{ grafana_port }}
+
+          Grafana credentials:
+            Username: {{ grafana_admin_user }}
+            Password: (set via grafana_admin_password variable)

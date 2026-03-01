@@ -1,0 +1,206 @@
+# =============================================================================
+# InfraProbe - Application Role Tasks
+# =============================================================================
+# Installs Docker, deploys InfraProbe as a systemd-managed container service,
+# templates the configuration, and verifies the metrics endpoint.
+# =============================================================================
+---
+# -----------------------------------------------------------------------------
+# Docker Installation
+# -----------------------------------------------------------------------------
+
+- name: Add Docker GPG apt key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker-ce
+
+- name: Install Docker Engine and dependencies
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  register: docker_install
+  retries: 3
+  delay: 10
+  until: docker_install is success
+
+- name: Configure Docker daemon
+  ansible.builtin.copy:
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "{{ docker_log_max_size }}",
+          "max-file": "{{ docker_log_max_file }}"
+        },
+        "default-address-pools": [
+          {
+            "base": "172.17.0.0/16",
+            "size": 24
+          }
+        ]
+      }
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart docker
+
+- name: Ensure Docker is enabled and running
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add infraprobe user to docker group
+  ansible.builtin.user:
+    name: "{{ project_user }}"
+    groups: docker
+    append: true
+
+# -----------------------------------------------------------------------------
+# Install standalone docker-compose binary
+# -----------------------------------------------------------------------------
+
+- name: Install docker-compose standalone binary
+  ansible.builtin.get_url:
+    url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-x86_64"
+    dest: /usr/local/bin/docker-compose
+    mode: "0755"
+    owner: root
+    group: root
+  register: compose_install
+  retries: 3
+  delay: 10
+  until: compose_install is success
+
+- name: Verify docker-compose installation
+  ansible.builtin.command: docker-compose version
+  register: compose_version
+  changed_when: false
+
+- name: Display docker-compose version
+  ansible.builtin.debug:
+    msg: "docker-compose version: {{ compose_version.stdout }}"
+
+# -----------------------------------------------------------------------------
+# Pull InfraProbe Container Image
+# -----------------------------------------------------------------------------
+
+- name: Pull InfraProbe Docker image
+  community.docker.docker_image:
+    name: "{{ infraprobe_image }}"
+    tag: "{{ infraprobe_image_tag }}"
+    source: pull
+    force_source: true
+  register: image_pull
+  retries: 3
+  delay: 15
+  until: image_pull is success
+
+- name: Display pulled image info
+  ansible.builtin.debug:
+    msg: "Pulled {{ infraprobe_image }}:{{ infraprobe_image_tag }}"
+
+# -----------------------------------------------------------------------------
+# Template Configuration
+# -----------------------------------------------------------------------------
+
+- name: Template InfraProbe configuration file
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ infraprobe_config_dir }}/config.yml"
+    owner: "{{ project_user }}"
+    group: "{{ project_group }}"
+    mode: "0640"
+    backup: true
+    validate: "python3 -c 'import yaml; yaml.safe_load(open(\"%s\"))'"
+  notify: restart infraprobe
+
+# -----------------------------------------------------------------------------
+# Systemd Service
+# -----------------------------------------------------------------------------
+
+- name: Template InfraProbe systemd service unit
+  ansible.builtin.template:
+    src: infraprobe.service.j2
+    dest: /etc/systemd/system/infraprobe.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart infraprobe
+
+- name: Enable and start InfraProbe service
+  ansible.builtin.systemd:
+    name: infraprobe
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# -----------------------------------------------------------------------------
+# Health Check
+# -----------------------------------------------------------------------------
+
+- name: Wait for InfraProbe to become available
+  ansible.builtin.wait_for:
+    port: "{{ infraprobe_metrics_port }}"
+    host: "127.0.0.1"
+    delay: 5
+    timeout: 60
+    state: started
+
+- name: Verify InfraProbe metrics endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ infraprobe_metrics_port }}/metrics"
+    method: GET
+    return_content: true
+    status_code: 200
+    timeout: 10
+  register: metrics_response
+  retries: 5
+  delay: 5
+  until: metrics_response.status == 200
+
+- name: Confirm metrics endpoint is healthy
+  ansible.builtin.debug:
+    msg: >
+      InfraProbe is running and serving metrics on port {{ infraprobe_metrics_port }}.
+      Response contains {{ metrics_response.content | length }} bytes.
+
+# -----------------------------------------------------------------------------
+# Log Rotation
+# -----------------------------------------------------------------------------
+
+- name: Configure InfraProbe log rotation
+  ansible.builtin.copy:
+    content: |
+      {{ infraprobe_log_dir }}/*.log {
+          daily
+          missingok
+          rotate 14
+          compress
+          delaycompress
+          notifempty
+          create 0640 {{ project_user }} {{ project_group }}
+          sharedscripts
+          postrotate
+              systemctl reload infraprobe 2>/dev/null || true
+          endscript
+      }
+    dest: /etc/logrotate.d/infraprobe
+    owner: root
+    group: root
+    mode: "0644"

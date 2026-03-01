@@ -1,0 +1,20 @@
+# =============================================================================
+# InfraProbe - Application Role Handlers
+# =============================================================================
+---
+- name: restart infraprobe
+  ansible.builtin.systemd:
+    name: infraprobe
+    state: restarted
+    enabled: true
+    daemon_reload: true
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart docker
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+    enabled: true

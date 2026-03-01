@@ -1,0 +1,166 @@
+# =============================================================================
+# InfraProbe Helm Chart — Default Values
+# =============================================================================
+# Override these values per-environment using --values or --set flags.
+# See values-production.yaml for hardened production defaults.
+# =============================================================================
+
+# -- Number of InfraProbe pod replicas
+replicaCount: 2
+
+image:
+  # -- Container image repository
+  repository: infraprobe
+  # -- Image pull policy (Always, IfNotPresent, Never)
+  pullPolicy: IfNotPresent
+  # -- Image tag override (defaults to Chart appVersion)
+  tag: ""
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create a ServiceAccount for InfraProbe pods
+  create: true
+  # -- Annotations to add to the ServiceAccount
+  annotations: {}
+  # -- ServiceAccount name override (generated from fullname if empty)
+  name: ""
+
+# -- Additional pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9100"
+  prometheus.io/path: "/metrics"
+
+# -- Additional pod labels
+podLabels: {}
+
+# -- Pod security context (applied at the pod level)
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+
+# -- Container security context
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_RAW
+
+service:
+  # -- Service type (ClusterIP, NodePort, LoadBalancer)
+  type: ClusterIP
+  # -- Service port
+  port: 9100
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "250m"
+
+# -- Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /metrics
+    port: metrics
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# -- Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /metrics
+    port: metrics
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# -- HorizontalPodAutoscaler settings
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# -- Prometheus Operator ServiceMonitor
+serviceMonitor:
+  # -- Deploy a ServiceMonitor resource (requires Prometheus Operator)
+  enabled: true
+  # -- Scrape interval
+  interval: 30s
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+  # -- Additional labels for ServiceMonitor (e.g. release: prometheus)
+  additionalLabels:
+    release: prometheus
+  # -- Honor labels from the target
+  honorLabels: true
+
+# -- Kubernetes NetworkPolicy
+networkPolicy:
+  # -- Deploy a NetworkPolicy restricting ingress to Prometheus only
+  enabled: true
+  # -- Pod selector labels for allowed ingress sources
+  ingressFrom:
+    podSelector:
+      matchLabels:
+        app: prometheus
+
+# -- Node selector constraints
+nodeSelector: {}
+
+# -- Tolerations for pod scheduling
+tolerations: []
+
+# -- Affinity rules for pod scheduling
+affinity: {}
+
+# -- InfraProbe configuration file content (mounted as /app/config.yml)
+config: |
+  targets:
+    - name: "cluster-dns"
+      host: "kube-dns.kube-system.svc.cluster.local"
+      checks:
+        - type: dns
+          domain: "kubernetes.default.svc.cluster.local"
+          record_type: A
+          interval: 60
+
+  system:
+    enabled: true
+    collect_cpu: true
+    collect_memory: true
+    collect_disk: true
+    collect_processes: false
+    collect_sockets: false
+    disk_paths:
+      - "/"
+    interval: 30
+
+  logging:
+    level: INFO
+    format: json
+    file: /dev/stderr
+
+  metrics:
+    enabled: true
+    port: 9100
+    bind: "0.0.0.0"

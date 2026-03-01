@@ -1,0 +1,45 @@
+# =============================================================================
+# InfraProbe - Server Setup Playbook
+# =============================================================================
+# Applies baseline server configuration to all hosts including system updates,
+# security hardening, firewall setup, and user creation.
+#
+# Usage:
+#   ansible-playbook playbooks/setup_server.yml
+#   ansible-playbook playbooks/setup_server.yml --limit infraprobe-01
+#   ansible-playbook playbooks/setup_server.yml --check --diff
+# =============================================================================
+---
+- name: Setup base server configuration
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Validate target OS is Ubuntu
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_major_version | int >= 20
+        fail_msg: "This playbook requires Ubuntu 20.04 or later. Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        success_msg: "Target OS validated: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Display host information
+      ansible.builtin.debug:
+        msg: |
+          Hostname: {{ ansible_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Kernel: {{ ansible_kernel }}
+          IP: {{ ansible_default_ipv4.address | default('N/A') }}
+          CPUs: {{ ansible_processor_vcpus }}
+          Memory: {{ ansible_memtotal_mb }}MB
+
+  roles:
+    - role: common
+
+  post_tasks:
+    - name: Server setup complete
+      ansible.builtin.debug:
+        msg: >
+          Server {{ ansible_hostname }} has been configured with base packages,
+          firewall rules, SSH hardening, and the infraprobe system user.

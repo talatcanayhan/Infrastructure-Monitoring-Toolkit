@@ -1,0 +1,96 @@
+# InfraProbe Configuration
+# Copy this file to config.yml and adjust for your environment
+
+targets:
+  - name: "web-server-1"
+    host: "192.168.1.10"
+    checks:
+      - type: ping
+        interval: 30
+        timeout: 5
+        count: 3
+      - type: http
+        url: "https://192.168.1.10"
+        expected_status: 200
+        check_tls: true
+        interval: 60
+        timeout: 10
+      - type: tcp
+        ports: [22, 80, 443]
+        interval: 120
+        timeout: 5
+
+  - name: "dns-server"
+    host: "8.8.8.8"
+    checks:
+      - type: ping
+        interval: 30
+        timeout: 3
+      - type: dns
+        domain: "example.com"
+        record_type: A
+        interval: 60
+
+system:
+  enabled: true
+  collect_cpu: true
+  collect_memory: true
+  collect_disk: true
+  collect_processes: true
+  collect_sockets: true
+  disk_paths:
+    - "/"
+    - "/var"
+  interval: 15
+
+logging:
+  level: INFO
+  format: json
+  file: /var/log/infraprobe/infraprobe.log
+
+alerting:
+  rules:
+    - name: "high-ping-latency"
+      metric: "ping_rtt_ms"
+      condition: "> 100"
+      duration: "5m"
+      severity: warning
+      notify: ["webhook"]
+
+    - name: "target-unreachable"
+      metric: "ping_packet_loss"
+      condition: ">= 1.0"
+      duration: "2m"
+      severity: critical
+      notify: ["webhook"]
+
+    - name: "tls-cert-expiring"
+      metric: "tls_days_until_expiry"
+      condition: "< 30"
+      duration: "1h"
+      severity: warning
+      notify: ["webhook"]
+
+    - name: "high-cpu-usage"
+      metric: "cpu_usage_percent"
+      condition: "> 90"
+      duration: "10m"
+      severity: warning
+      notify: ["webhook"]
+
+    - name: "disk-space-low"
+      metric: "disk_usage_percent"
+      condition: "> 85"
+      duration: "5m"
+      severity: critical
+      notify: ["webhook"]
+
+  notifiers:
+    webhook:
+      url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+      timeout: 10
+
+metrics:
+  enabled: true
+  port: 9100
+  bind: "0.0.0.0"

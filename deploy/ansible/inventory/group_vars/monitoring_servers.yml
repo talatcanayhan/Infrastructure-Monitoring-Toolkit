@@ -1,0 +1,90 @@
+# =============================================================================
+# InfraProbe - Monitoring Servers Group Variables
+# =============================================================================
+
+# InfraProbe configuration
+infraprobe_metrics_bind: "0.0.0.0"
+infraprobe_log_level: "INFO"
+infraprobe_log_format: "json"
+
+# Monitoring targets to probe
+infraprobe_targets:
+  - name: "web-server-1"
+    host: "192.168.1.10"
+    checks:
+      - type: ping
+        interval: 30
+        timeout: 5
+        count: 3
+      - type: http
+        url: "https://192.168.1.10"
+        expected_status: 200
+        check_tls: true
+        interval: 60
+        timeout: 10
+      - type: tcp
+        ports: [22, 80, 443]
+        interval: 120
+        timeout: 5
+
+  - name: "dns-server"
+    host: "8.8.8.8"
+    checks:
+      - type: ping
+        interval: 30
+        timeout: 3
+      - type: dns
+        domain: "example.com"
+        record_type: A
+        interval: 60
+
+# System metrics collection
+infraprobe_system_metrics:
+  enabled: true
+  collect_cpu: true
+  collect_memory: true
+  collect_disk: true
+  collect_processes: true
+  collect_sockets: true
+  disk_paths:
+    - "/"
+    - "/var"
+  interval: 15
+
+# Alerting configuration
+infraprobe_alerting_rules:
+  - name: "high-ping-latency"
+    metric: "ping_rtt_ms"
+    condition: "> 100"
+    duration: "5m"
+    severity: warning
+  - name: "target-unreachable"
+    metric: "ping_packet_loss"
+    condition: ">= 1.0"
+    duration: "2m"
+    severity: critical
+  - name: "high-cpu-usage"
+    metric: "cpu_usage_percent"
+    condition: "> 90"
+    duration: "10m"
+    severity: warning
+  - name: "disk-space-low"
+    metric: "disk_usage_percent"
+    condition: "> 85"
+    duration: "5m"
+    severity: critical
+
+# Webhook notifier
+infraprobe_webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+infraprobe_webhook_timeout: 10
+
+# Prometheus configuration
+prometheus_image: "prom/prometheus:v2.51.0"
+prometheus_retention: "15d"
+prometheus_scrape_interval: "15s"
+
+# Grafana configuration
+grafana_image: "grafana/grafana:10.4.0"
+grafana_admin_user: "admin"
+grafana_admin_password: "{{ vault_grafana_admin_password | default('admin') }}"
+grafana_allow_signup: false

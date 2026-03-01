@@ -1,0 +1,25 @@
+# =============================================================================
+# InfraProbe - Common Role Handlers
+# =============================================================================
+---
+- name: restart ssh
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+    enabled: true
+
+- name: reload ufw
+  community.general.ufw:
+    state: reloaded
+
+- name: restart chrony
+  ansible.builtin.systemd:
+    name: chrony
+    state: restarted
+    enabled: true
+
+- name: restart fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: restarted
+    enabled: true

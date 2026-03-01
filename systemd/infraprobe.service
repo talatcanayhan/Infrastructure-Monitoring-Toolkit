@@ -1,0 +1,35 @@
+[Unit]
+Description=InfraProbe Infrastructure Monitoring
+Documentation=https://github.com/talatcanayhan/infraprobe
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=infraprobe
+Group=infraprobe
+ExecStart=/usr/local/bin/infraprobe serve --config /etc/infraprobe/config.yml --port 9100
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=infraprobe
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/infraprobe
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+
+# Required for raw ICMP sockets
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+# =============================================================================
+# InfraProbe — Kubernetes Namespace
+# =============================================================================
+# Dedicated namespace for InfraProbe workloads.
+# Apply first: kubectl apply -f namespace.yml
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: infraprobe
+  labels:
+    app.kubernetes.io/name: infraprobe
+    app.kubernetes.io/part-of: infraprobe
+    app.kubernetes.io/managed-by: kubectl

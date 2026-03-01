@@ -1,0 +1,39 @@
+# =============================================================================
+# Dependabot — automated dependency updates
+# =============================================================================
+
+version: 2
+updates:
+  # Python (pip) dependencies from pyproject.toml
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 10
+    reviewers:
+      - talatayhan
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: "deps(pip):"
+
+  # GitHub Actions versions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Istanbul
+    open-pull-requests-limit: 5
+    reviewers:
+      - talatayhan
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "deps(actions):"

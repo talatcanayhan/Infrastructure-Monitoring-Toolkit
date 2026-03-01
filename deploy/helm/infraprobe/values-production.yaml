@@ -1,0 +1,96 @@
+# =============================================================================
+# InfraProbe Helm Chart — Production Overrides
+# =============================================================================
+# Usage: helm install infraprobe ./deploy/helm/infraprobe \
+#          -f ./deploy/helm/infraprobe/values-production.yaml
+# =============================================================================
+
+replicaCount: 3
+
+image:
+  pullPolicy: Always
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_RAW
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 15
+  targetCPUUtilizationPercentage: 60
+
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 10s
+
+networkPolicy:
+  enabled: true
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - infraprobe
+          topologyKey: kubernetes.io/hostname
+
+config: |
+  targets:
+    - name: "cluster-dns"
+      host: "kube-dns.kube-system.svc.cluster.local"
+      checks:
+        - type: dns
+          domain: "kubernetes.default.svc.cluster.local"
+          record_type: A
+          interval: 30
+
+  system:
+    enabled: true
+    collect_cpu: true
+    collect_memory: true
+    collect_disk: true
+    collect_processes: true
+    collect_sockets: true
+    disk_paths:
+      - "/"
+      - "/var"
+    interval: 15
+
+  logging:
+    level: WARNING
+    format: json
+    file: /dev/stderr
+
+  metrics:
+    enabled: true
+    port: 9100
+    bind: "0.0.0.0"

@@ -1,0 +1,76 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "CPU Usage Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "infraprobe_cpu_usage_percent{mode=\"user\"}", "legendFormat": "User" },
+        { "expr": "infraprobe_cpu_usage_percent{mode=\"system\"}", "legendFormat": "System" },
+        { "expr": "infraprobe_cpu_usage_percent{mode=\"iowait\"}", "legendFormat": "I/O Wait" },
+        { "expr": "infraprobe_cpu_usage_percent{mode=\"steal\"}", "legendFormat": "Steal" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" } } } }
+    },
+    {
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "infraprobe_memory_usage_bytes{type=\"used\"}", "legendFormat": "Used" },
+        { "expr": "infraprobe_memory_usage_bytes{type=\"cached\"}", "legendFormat": "Cached" },
+        { "expr": "infraprobe_memory_usage_bytes{type=\"available\"}", "legendFormat": "Available" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } } } }
+    },
+    {
+      "title": "CPU Total Usage",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "infraprobe_cpu_usage_percent{mode=\"total\"}", "legendFormat": "CPU" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 60 }, { "color": "red", "value": 85 }] } }
+      }
+    },
+    {
+      "title": "Memory Usage %",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        { "expr": "infraprobe_memory_usage_percent", "legendFormat": "Memory" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 60 }, { "color": "red", "value": 85 }] } }
+      }
+    },
+    {
+      "title": "Disk Usage by Mount",
+      "type": "bargauge",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "infraprobe_disk_usage_percent", "legendFormat": "{{ mountpoint }}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 60 }, { "color": "orange", "value": 80 }, { "color": "red", "value": 90 }] } }
+      }
+    },
+    {
+      "title": "Metric Collection Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(infraprobe_collection_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{ collector }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["infraprobe", "system"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "InfraProbe System Metrics",
+  "uid": "infraprobe-system"
+}

@@ -1,0 +1,54 @@
+# =============================================================================
+# InfraProbe - Application Role Default Variables
+# =============================================================================
+---
+# Docker settings
+docker_edition: ce
+docker_compose_version: "v2.24.5"
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+
+# Container image
+infraprobe_image: "ghcr.io/infraprobe/infraprobe"
+infraprobe_image_tag: "latest"
+
+# Network
+infraprobe_metrics_port: 9100
+infraprobe_metrics_bind: "0.0.0.0"
+
+# Logging
+infraprobe_log_level: "INFO"
+infraprobe_log_format: "json"
+
+# Application paths
+infraprobe_base_dir: /opt/infraprobe
+infraprobe_config_dir: /opt/infraprobe/config
+infraprobe_data_dir: /opt/infraprobe/data
+infraprobe_log_dir: /var/log/infraprobe
+
+# Project identification
+project_name: infraprobe
+project_user: infraprobe
+project_group: infraprobe
+
+# Default monitoring targets (override in group_vars)
+infraprobe_targets: []
+
+# Default system metrics collection
+infraprobe_system_metrics:
+  enabled: true
+  collect_cpu: true
+  collect_memory: true
+  collect_disk: true
+  collect_processes: true
+  collect_sockets: true
+  disk_paths:
+    - "/"
+  interval: 15
+
+# Default alerting rules (override in group_vars)
+infraprobe_alerting_rules: []
+
+# Default webhook settings
+infraprobe_webhook_url: ""
+infraprobe_webhook_timeout: 10

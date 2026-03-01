@@ -1,0 +1,249 @@
+# =============================================================================
+# InfraProbe - Common Role Tasks
+# =============================================================================
+# Baseline server configuration: system updates, security hardening, firewall
+# setup, NTP configuration, and system user creation.
+# =============================================================================
+---
+# -----------------------------------------------------------------------------
+# System Updates
+# -----------------------------------------------------------------------------
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  register: apt_update
+  retries: 3
+  delay: 10
+  until: apt_update is success
+
+- name: Upgrade all packages to latest version
+  ansible.builtin.apt:
+    upgrade: safe
+    autoremove: true
+    autoclean: true
+  register: apt_upgrade
+  retries: 3
+  delay: 10
+  until: apt_upgrade is success
+
+# -----------------------------------------------------------------------------
+# Base Packages
+# -----------------------------------------------------------------------------
+
+- name: Install essential system packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - vim
+      - htop
+      - net-tools
+      - jq
+      - ufw
+      - chrony
+      - unzip
+      - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - fail2ban
+      - logrotate
+    state: present
+  register: pkg_install
+  retries: 3
+  delay: 10
+  until: pkg_install is success
+
+# -----------------------------------------------------------------------------
+# UFW Firewall Configuration
+# -----------------------------------------------------------------------------
+
+- name: Set UFW default policy - deny incoming
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set UFW default policy - allow outgoing
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow SSH through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ ssh_port }}"
+    proto: tcp
+    comment: "SSH access"
+
+- name: Allow InfraProbe metrics port through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ infraprobe_metrics_port }}"
+    proto: tcp
+    comment: "InfraProbe metrics endpoint"
+
+- name: Allow Grafana port through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    proto: tcp
+    comment: "Grafana web UI"
+
+- name: Allow Prometheus port through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ prometheus_port }}"
+    proto: tcp
+    comment: "Prometheus web UI and API"
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    logging: "on"
+  notify: reload ufw
+
+# -----------------------------------------------------------------------------
+# NTP Configuration (chrony)
+# -----------------------------------------------------------------------------
+
+- name: Configure chrony NTP servers
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: restart chrony
+
+- name: Ensure chrony is enabled and running
+  ansible.builtin.systemd:
+    name: chrony
+    state: started
+    enabled: true
+
+# -----------------------------------------------------------------------------
+# System User
+# -----------------------------------------------------------------------------
+
+- name: Create infraprobe system group
+  ansible.builtin.group:
+    name: "{{ project_group }}"
+    system: true
+    state: present
+
+- name: Create infraprobe system user
+  ansible.builtin.user:
+    name: "{{ project_user }}"
+    group: "{{ project_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ infraprobe_base_dir }}"
+    create_home: true
+    comment: "InfraProbe service account"
+    state: present
+
+- name: Create application directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ project_user }}"
+    group: "{{ project_group }}"
+    mode: "0750"
+  loop:
+    - "{{ infraprobe_base_dir }}"
+    - "{{ infraprobe_config_dir }}"
+    - "{{ infraprobe_data_dir }}"
+    - "{{ infraprobe_log_dir }}"
+
+# -----------------------------------------------------------------------------
+# SSH Hardening
+# -----------------------------------------------------------------------------
+
+- name: Harden SSH - disable root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin {{ ssh_permit_root_login }}"
+    backup: true
+    validate: "sshd -t -f %s"
+  notify: restart ssh
+
+- name: Harden SSH - disable password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication {{ ssh_password_authentication }}"
+    validate: "sshd -t -f %s"
+  notify: restart ssh
+
+- name: Harden SSH - set max auth retries
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?MaxAuthTries"
+    line: "MaxAuthTries {{ ssh_max_auth_retries }}"
+    validate: "sshd -t -f %s"
+  notify: restart ssh
+
+- name: Harden SSH - disable X11 forwarding
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?X11Forwarding"
+    line: "X11Forwarding no"
+    validate: "sshd -t -f %s"
+  notify: restart ssh
+
+# -----------------------------------------------------------------------------
+# fail2ban Configuration
+# -----------------------------------------------------------------------------
+
+- name: Configure fail2ban for SSH
+  ansible.builtin.copy:
+    content: |
+      [sshd]
+      enabled = true
+      port = {{ ssh_port }}
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 5
+      bantime = 3600
+      findtime = 600
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart fail2ban
+
+- name: Ensure fail2ban is enabled and running
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+
+# -----------------------------------------------------------------------------
+# Kernel Tuning
+# -----------------------------------------------------------------------------
+
+- name: Apply kernel parameters for monitoring workloads
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-infraprobe.conf
+  loop:
+    - { key: "fs.file-max", value: "65535" }
+    - { key: "net.core.rmem_max", value: "16777216" }
+    - { key: "net.core.wmem_max", value: "16777216" }
+    - { key: "net.ipv4.ping_group_range", value: "0 2147483647" }
+
+# -----------------------------------------------------------------------------
+# Set Timezone
+# -----------------------------------------------------------------------------
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ timezone }}"

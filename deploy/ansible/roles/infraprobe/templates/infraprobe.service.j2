@@ -1,0 +1,73 @@
+# =============================================================================
+# InfraProbe systemd Service Unit - Managed by Ansible
+# =============================================================================
+# Runs InfraProbe as a Docker container managed by systemd with security
+# hardening directives.
+# =============================================================================
+
+[Unit]
+Description=InfraProbe Monitoring Agent
+Documentation=https://github.com/infraprobe/infraprobe
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ project_user }}
+Group={{ project_group }}
+WorkingDirectory={{ infraprobe_base_dir }}
+
+# Pre-start: pull latest image and remove any existing container
+ExecStartPre=-/usr/bin/docker stop %n 2>/dev/null
+ExecStartPre=-/usr/bin/docker rm %n 2>/dev/null
+ExecStartPre=/usr/bin/docker pull {{ infraprobe_image }}:{{ infraprobe_image_tag }}
+
+# Start the InfraProbe container
+ExecStart=/usr/bin/docker run \
+    --name %n \
+    --rm \
+    --network host \
+    --cap-add NET_RAW \
+    --volume {{ infraprobe_config_dir }}/config.yml:/app/config.yml:ro \
+    --volume {{ infraprobe_log_dir }}:/var/log/infraprobe \
+    --volume {{ infraprobe_data_dir }}:/app/data \
+    --label "com.infraprobe.managed-by=ansible" \
+    --label "com.infraprobe.service=infraprobe" \
+    --health-cmd="python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:{{ infraprobe_metrics_port }}/metrics')\"" \
+    --health-interval=30s \
+    --health-timeout=5s \
+    --health-retries=3 \
+    --health-start-period=10s \
+    {{ infraprobe_image }}:{{ infraprobe_image_tag }}
+
+# Stop gracefully
+ExecStop=/usr/bin/docker stop --time 30 %n
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths={{ infraprobe_log_dir }} {{ infraprobe_data_dir }}
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# Environment
+Environment="DOCKER_HOST=unix:///var/run/docker.sock"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=infraprobe
+
+[Install]
+WantedBy=multi-user.target

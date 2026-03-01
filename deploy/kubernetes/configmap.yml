@@ -1,0 +1,45 @@
+# =============================================================================
+# InfraProbe — ConfigMap
+# =============================================================================
+# Stores the InfraProbe configuration file as a Kubernetes ConfigMap.
+# Mounted into the pod at /app/config.yml via the Deployment volume spec.
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infraprobe-config
+  namespace: infraprobe
+  labels:
+    app.kubernetes.io/name: infraprobe
+    app.kubernetes.io/component: config
+data:
+  config.yml: |
+    targets:
+      - name: "cluster-dns"
+        host: "kube-dns.kube-system.svc.cluster.local"
+        checks:
+          - type: dns
+            domain: "kubernetes.default.svc.cluster.local"
+            record_type: A
+            interval: 60
+
+    system:
+      enabled: true
+      collect_cpu: true
+      collect_memory: true
+      collect_disk: true
+      collect_processes: false
+      collect_sockets: false
+      disk_paths:
+        - "/"
+      interval: 30
+
+    logging:
+      level: INFO
+      format: json
+      file: /dev/stderr
+
+    metrics:
+      enabled: true
+      port: 9100
+      bind: "0.0.0.0"

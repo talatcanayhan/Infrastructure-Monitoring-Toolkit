@@ -1,0 +1,24 @@
+# =============================================================================
+# Chrony NTP Configuration - Managed by Ansible
+# =============================================================================
+
+# NTP servers
+{% for server in ntp_servers %}
+server {{ server }} iburst
+{% endfor %}
+
+# Record the rate at which the system clock gains/losses time
+driftfile /var/lib/chrony/chrony.drift
+
+# Allow the system clock to be stepped in the first three updates
+# if its offset is larger than 1 second
+makestep 1.0 3
+
+# Enable kernel synchronisation of the real-time clock (RTC)
+rtcsync
+
+# Serve time to the local network (disable in most cases)
+# allow 10.0.0.0/8
+
+# Log files location
+logdir /var/log/chrony

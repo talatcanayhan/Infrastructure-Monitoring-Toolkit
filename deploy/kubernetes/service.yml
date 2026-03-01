@@ -1,0 +1,24 @@
+# =============================================================================
+# InfraProbe — Service
+# =============================================================================
+# ClusterIP service exposing the Prometheus metrics endpoint on port 9100.
+# Used by Prometheus ServiceMonitor for scrape target discovery.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: infraprobe
+  namespace: infraprobe
+  labels:
+    app: infraprobe
+    app.kubernetes.io/name: infraprobe
+    app.kubernetes.io/component: agent
+spec:
+  type: ClusterIP
+  selector:
+    app: infraprobe
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics
+      protocol: TCP

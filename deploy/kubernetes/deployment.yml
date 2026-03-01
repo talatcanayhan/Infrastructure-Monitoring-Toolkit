@@ -1,0 +1,101 @@
+# =============================================================================
+# InfraProbe — Deployment
+# =============================================================================
+# Runs InfraProbe as a Deployment with:
+#   - 2 replicas for availability
+#   - Resource requests/limits for QoS Guaranteed class
+#   - Liveness and readiness probes on /metrics:9100
+#   - Hardened securityContext (non-root, read-only FS, drop all caps)
+#   - ConfigMap volume mount for the probe configuration
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infraprobe
+  namespace: infraprobe
+  labels:
+    app: infraprobe
+    app.kubernetes.io/name: infraprobe
+    app.kubernetes.io/component: agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: infraprobe
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: infraprobe
+        app.kubernetes.io/name: infraprobe
+        app.kubernetes.io/component: agent
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: default
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+        - name: infraprobe
+          image: infraprobe:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9100
+              protocol: TCP
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_RAW
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yml
+              subPath: config.yml
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: infraprobe-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 10Mi
+      terminationGracePeriodSeconds: 30

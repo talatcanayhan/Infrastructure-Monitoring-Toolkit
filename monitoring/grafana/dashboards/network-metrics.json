@@ -1,0 +1,97 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Ping RTT by Target (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(infraprobe_ping_rtt_seconds_bucket[5m]))", "legendFormat": "p50 {{ target }}" },
+        { "expr": "histogram_quantile(0.95, rate(infraprobe_ping_rtt_seconds_bucket[5m]))", "legendFormat": "p95 {{ target }}" },
+        { "expr": "histogram_quantile(0.99, rate(infraprobe_ping_rtt_seconds_bucket[5m]))", "legendFormat": "p99 {{ target }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 10 } } }
+    },
+    {
+      "title": "Packet Loss by Target",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "infraprobe_ping_packet_loss_ratio * 100", "legendFormat": "{{ target }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 5 }] } } }
+    },
+    {
+      "title": "DNS Resolution Time",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(infraprobe_dns_resolution_seconds_bucket[5m]))", "legendFormat": "{{ domain }} ({{ record_type }})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "HTTP Response Time by Endpoint",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(infraprobe_http_response_seconds_bucket[5m]))", "legendFormat": "p50 {{ url }}" },
+        { "expr": "histogram_quantile(0.95, rate(infraprobe_http_response_seconds_bucket[5m]))", "legendFormat": "p95 {{ url }}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "HTTP Status Codes",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        { "expr": "infraprobe_http_status_code", "legendFormat": "{{ url }}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 400 }] } }
+      }
+    },
+    {
+      "title": "Port State Matrix",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 22 },
+      "targets": [
+        { "expr": "infraprobe_port_open", "legendFormat": "{{ target }}:{{ port }}", "format": "table", "instant": true }
+      ]
+    },
+    {
+      "title": "TLS Certificate Days Until Expiry",
+      "type": "bargauge",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 28 },
+      "targets": [
+        { "expr": "infraprobe_tls_days_until_expiry", "legendFormat": "{{ hostname }}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "d", "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 7 }, { "color": "yellow", "value": 14 }, { "color": "green", "value": 30 }] } }
+      }
+    },
+    {
+      "title": "Checks Performed (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 34 },
+      "targets": [
+        { "expr": "rate(infraprobe_checks_total[5m]) * 60", "legendFormat": "{{ check_type }} — {{ target }}" }
+      ]
+    },
+    {
+      "title": "Check Failures (rate/min)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 34 },
+      "targets": [
+        { "expr": "rate(infraprobe_checks_failed_total[5m]) * 60", "legendFormat": "{{ check_type }} — {{ target }}" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } } }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["infraprobe", "network"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "InfraProbe Network Metrics",
+  "uid": "infraprobe-network"
+}

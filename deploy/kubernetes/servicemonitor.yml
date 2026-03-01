@@ -1,0 +1,32 @@
+# =============================================================================
+# InfraProbe — ServiceMonitor (Prometheus Operator CRD)
+# =============================================================================
+# Enables automatic Prometheus scrape target discovery via the Prometheus
+# Operator. Requires the Prometheus Operator to be installed in the cluster.
+#
+# The ServiceMonitor selects the infraprobe Service by label and configures
+# scraping on the "metrics" port at /metrics every 30 seconds.
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: infraprobe
+  namespace: infraprobe
+  labels:
+    app: infraprobe
+    app.kubernetes.io/name: infraprobe
+    app.kubernetes.io/component: monitoring
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: infraprobe
+  namespaceSelector:
+    matchNames:
+      - infraprobe
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      honorLabels: true

@@ -1,0 +1,55 @@
+# =============================================================================
+# InfraProbe - Application Deployment Playbook
+# =============================================================================
+# Deploys InfraProbe to the monitoring_servers group. Installs Docker,
+# pulls the container image, templates the config, and starts the service.
+#
+# Usage:
+#   ansible-playbook playbooks/deploy_infraprobe.yml
+#   ansible-playbook playbooks/deploy_infraprobe.yml -e "infraprobe_image_tag=v1.2.0"
+#   ansible-playbook playbooks/deploy_infraprobe.yml --check --diff
+#   ansible-playbook playbooks/deploy_infraprobe.yml --tags config
+# =============================================================================
+---
+- name: Deploy InfraProbe monitoring agent
+  hosts: monitoring_servers
+  become: true
+  gather_facts: true
+  serial: 1  # Rolling deployment - one host at a time
+
+  pre_tasks:
+    - name: Display deployment parameters
+      ansible.builtin.debug:
+        msg: |
+          Deploying InfraProbe to {{ ansible_hostname }}
+          Image: {{ infraprobe_image }}:{{ infraprobe_image_tag }}
+          Metrics port: {{ infraprobe_metrics_port }}
+          Config dir: {{ infraprobe_config_dir }}
+
+    - name: Verify infraprobe user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ project_user }}"
+      register: user_check
+      failed_when: false
+
+    - name: Run common role if user does not exist
+      ansible.builtin.include_role:
+        name: common
+      when: user_check.failed | default(false)
+
+  roles:
+    - role: infraprobe
+
+  post_tasks:
+    - name: Gather service status
+      ansible.builtin.systemd:
+        name: infraprobe
+      register: infraprobe_service
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg: |
+          Deployment complete on {{ ansible_hostname }}
+          Service state: {{ infraprobe_service.status.ActiveState }}
+          Metrics URL: http://{{ ansible_default_ipv4.address | default('localhost') }}:{{ infraprobe_metrics_port }}/metrics

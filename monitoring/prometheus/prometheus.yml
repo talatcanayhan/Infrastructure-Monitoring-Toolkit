@@ -1,0 +1,23 @@
+# Prometheus configuration for InfraProbe monitoring stack
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  # InfraProbe metrics endpoint
+  - job_name: "infraprobe"
+    static_configs:
+      - targets: ["infraprobe:9100"]
+        labels:
+          instance: "infraprobe-main"
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

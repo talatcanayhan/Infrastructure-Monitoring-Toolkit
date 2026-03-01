@@ -1,0 +1,88 @@
+# =============================================================================
+# InfraProbe Full Monitoring Stack
+# =============================================================================
+# Services:
+#   - infraprobe: The monitoring agent exposing /metrics on port 9100
+#   - prometheus: Scrapes metrics from infraprobe, evaluates alert rules
+#   - grafana:    Dashboards for visualizing metrics from Prometheus
+#
+# Usage:
+#   docker compose up -d
+#   Grafana:    http://localhost:3000 (admin/admin)
+#   Prometheus: http://localhost:9090
+#   Metrics:    http://localhost:9100/metrics
+# =============================================================================
+
+services:
+  infraprobe:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: infraprobe
+    ports:
+      - "9100:9100"
+    volumes:
+      - ./config.example.yml:/app/config.yml:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+    # Required for raw ICMP sockets
+    cap_add:
+      - NET_RAW
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9100/metrics')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    networks:
+      - monitoring
+    restart: unless-stopped
+    depends_on:
+      infraprobe:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
+    name: infraprobe-network

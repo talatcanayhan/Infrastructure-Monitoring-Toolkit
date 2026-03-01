@@ -1,0 +1,45 @@
+===========================================================================
+  InfraProbe has been deployed successfully!
+===========================================================================
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Replicas:  {{ .Values.replicaCount }}
+
+--- Accessing the Metrics Endpoint ---
+
+1. Port-forward to the InfraProbe service:
+
+   kubectl port-forward -n {{ .Release.Namespace }} \
+     svc/{{ include "infraprobe.fullname" . }} 9100:{{ .Values.service.port }}
+
+2. Open in your browser or curl:
+
+   curl http://localhost:9100/metrics
+
+--- Prometheus Integration ---
+
+{{- if .Values.serviceMonitor.enabled }}
+
+A ServiceMonitor has been created. If the Prometheus Operator is installed
+and configured to watch this namespace, InfraProbe will be scraped
+automatically at {{ .Values.serviceMonitor.interval }} intervals.
+
+Verify the target appears in Prometheus:
+  kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090
+  # Then check Status -> Targets in the Prometheus UI.
+
+{{- else }}
+
+ServiceMonitor is disabled. To enable Prometheus Operator auto-discovery,
+set serviceMonitor.enabled=true during install or upgrade.
+
+{{- end }}
+
+--- Verifying the Deployment ---
+
+  kubectl get pods -n {{ .Release.Namespace }} -l "{{ include "infraprobe.selectorLabels" . | replace ": " "=" | replace "\n" "," }}"
+
+--- Running Helm Tests ---
+
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
