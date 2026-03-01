@@ -67,12 +67,14 @@ GENERIC_PATTERN = re.compile(
 
 # Level detection keywords for unstructured logs
 LEVEL_KEYWORDS = {
-    "error": "ERROR",
-    "err": "ERROR",
-    "fail": "ERROR",
     "fatal": "CRITICAL",
     "critical": "CRITICAL",
     "crit": "CRITICAL",
+    "out of memory": "ERROR",
+    "oom": "ERROR",
+    "error": "ERROR",
+    "err": "ERROR",
+    "fail": "ERROR",
     "warn": "WARNING",
     "warning": "WARNING",
     "notice": "INFO",
