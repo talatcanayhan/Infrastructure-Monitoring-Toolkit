@@ -389,7 +389,7 @@ def _system_resolve_fallback(domain: str, record_type: str) -> list[DNSRecord]:
         results = socket.getaddrinfo(domain, None, family)
         seen: set[str] = set()
         for _, _, _, _, sockaddr in results:
-            ip = sockaddr[0]
+            ip = str(sockaddr[0])
             if ip not in seen:
                 seen.add(ip)
                 records.append(DNSRecord(record_type=record_type, value=ip))

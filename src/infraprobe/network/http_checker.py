@@ -80,23 +80,29 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
 
                 # Extract subject common name
                 subject_parts = []
-                for rdn in cert.get("subject", ()):
-                    for attr_type, attr_value in rdn:
-                        if attr_type == "commonName":
-                            subject_parts.append(attr_value)
+                subject = cert.get("subject")
+                if isinstance(subject, tuple):
+                    for rdn in subject:
+                        for attr_type, attr_value in rdn:
+                            if attr_type == "commonName":
+                                subject_parts.append(attr_value)
                 info.subject = ", ".join(subject_parts) if subject_parts else "Unknown"
 
                 # Extract issuer
                 issuer_parts = []
-                for rdn in cert.get("issuer", ()):
-                    for attr_type, attr_value in rdn:
-                        if attr_type in ("organizationName", "commonName"):
-                            issuer_parts.append(attr_value)
+                issuer = cert.get("issuer")
+                if isinstance(issuer, tuple):
+                    for rdn in issuer:
+                        for attr_type, attr_value in rdn:
+                            if attr_type in ("organizationName", "commonName"):
+                                issuer_parts.append(attr_value)
                 info.issuer = ", ".join(issuer_parts) if issuer_parts else "Unknown"
 
                 # Validity dates
-                info.not_before = cert.get("notBefore", "")
-                info.not_after = cert.get("notAfter", "")
+                not_before = cert.get("notBefore", "")
+                not_after = cert.get("notAfter", "")
+                info.not_before = not_before if isinstance(not_before, str) else ""
+                info.not_after = not_after if isinstance(not_after, str) else ""
 
                 # Calculate days until expiry
                 if info.not_after:
@@ -107,8 +113,9 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
                     info.is_expired = delta.days <= 0
 
                 # Subject Alternative Names
-                san_entries = cert.get("subjectAltName", ())
-                info.san = [value for _, value in san_entries]
+                san_entries = cert.get("subjectAltName")
+                if isinstance(san_entries, tuple):
+                    info.san = [value for _, value in san_entries]
 
                 # Connection details
                 info.protocol_version = ssock.version() or ""
@@ -116,7 +123,8 @@ def check_tls_certificate(hostname: str, port: int = 443) -> TLSCertInfo:
                 info.cipher = cipher_info[0] if cipher_info else ""
 
                 # Serial number
-                info.serial_number = cert.get("serialNumber", "")
+                serial = cert.get("serialNumber", "")
+                info.serial_number = serial if isinstance(serial, str) else ""
 
     except ssl.SSLCertVerificationError as e:
         logger.warning("TLS certificate verification failed for %s: %s", hostname, e)

@@ -71,7 +71,7 @@ def _get_total_memory_kb() -> int:
     return 0
 
 
-def _read_process_stat(pid: int) -> Optional[dict]:
+def _read_process_stat(pid: int) -> Optional[dict[str, object]]:
     """Read /proc/[pid]/stat for CPU time and state.
 
     The stat file format is tricky because the process name (comm)

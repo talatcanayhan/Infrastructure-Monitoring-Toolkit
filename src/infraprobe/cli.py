@@ -223,7 +223,7 @@ def system(
     from infraprobe.output.console import print_system_metrics
     from infraprobe.output.json_output import print_json
 
-    metrics: dict = {}
+    metrics: dict[str, object] = {}
     if cpu:
         metrics["cpu"] = get_cpu_metrics()
     if memory:

@@ -112,12 +112,12 @@ class MetricCollector:
                 elif check_type == "dns":
                     from infraprobe.network.dns_resolver import resolve
 
-                    result = resolve(
+                    dns_result = resolve(
                         domain=check.domain,
                         record_type=check.record_type,
                         nameserver=getattr(check, "nameserver", None),
                     )
-                    update_dns_metrics(check.domain, check.record_type, result)
+                    update_dns_metrics(check.domain, check.record_type, dns_result)
 
                 elapsed = time.perf_counter() - start
                 collection_duration.labels(collector=f"{check_type}-{target.name}").observe(elapsed)
