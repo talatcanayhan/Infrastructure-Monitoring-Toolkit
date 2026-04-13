@@ -41,7 +41,7 @@ dev = [
     "flake8>=7.0",
     "mypy>=1.10",
     "bandit>=1.7",
-    "pre-commit>=3.7",
+    "pre-commit>=4.5.1",
     "types-PyYAML",
     "types-requests",
 ]
